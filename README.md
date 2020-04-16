@@ -45,6 +45,8 @@ You can find the path to the shortest unexplored room by using a breadth-first s
 
 If all paths have been explored, you're done!
 
+
+
 ## Minimum Viable Product
 
 * __1__: Tests do not pass
