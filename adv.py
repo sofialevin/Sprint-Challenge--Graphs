@@ -30,11 +30,6 @@ player = Player(world.starting_room)
 # traversal_path = ['n', 'n']
 traversal_path = []
 
-visited = {}
-prev_room = None
-
-rooms = set()
-
 # helper function for getting opposite direction
 def opposite(direction):
     if direction == 'n':
@@ -46,54 +41,60 @@ def opposite(direction):
     else:
         return 'e'
 
-visited = {0: {'n': '?', 's': '?', 'e': '?', 'w': '?'}}
+prev_room = None
+rooms = set()
+stack = []
+# path for going backwards
+back_path = []
+visited = {
+    player.current_room.id: {}
+}
 
+# set up stack and back_path with an initial direction
 directions = player.current_room.get_exits()
 current_direction = directions[0]
+stack.append(current_direction)
+back_path.append(opposite(current_direction))
 
-unexplored_rooms = len(room_graph)
+# create directions in initial room
+for direction in directions:
+    visited[player.current_room.id][direction] = "?"
 
-while unexplored_rooms > 0:
+while len(visited) < len(room_graph):
     prev_room = player.current_room.id
+    current_direction = stack[-1]
     player.travel(current_direction)
     traversal_path.append(current_direction)
     rooms.add(player.current_room.id)
 
+    # when moving between rooms update the previous room with the direction travelled
     visited[prev_room][current_direction] = player.current_room.id
 
     if player.current_room.id not in visited:
+        # add new room to visited
         visited[player.current_room.id] = {}
+    if prev_room is not None:
+        # when moving between rooms update the current room with the direction travelled
         visited[player.current_room.id][opposite(current_direction)] = prev_room
 
-    current_direction = None
-    
-    unexplored_exits = 0
+    # make list with possible moves
+    possible_directions = []
     for direction in player.current_room.get_exits():
         if direction not in visited[player.current_room.id]:
-            current_direction = direction
             visited[player.current_room.id][direction] = "?"
-            unexplored_exits += 1
+        if visited[player.current_room.id][direction] is "?":
+            possible_directions.append(direction)
 
-    if unexplored_exits == 0:
+    # if possible moves exist, pick one and add to stack. also update back_path.
+    if len(possible_directions) > 0:
+        stack.append(possible_directions[0])
+        back_path.append(opposite(possible_directions[0]))
+    else:
+        # if no possible moves exist, add previous room from back_path to stack
+        back = back_path.pop()
+        stack.append(back)
 
-        queue = Queue()
-        explored = set()
 
-        queue.enqueue(player.current_room.get_exits()[0])
-
-        while queue.size() > 0 and current_direction == None:
-            path = queue.dequeue()
-            new_direction = path[-1]
-            player.travel(new_direction)
-            traversal_path.append(new_direction)
-            if player.current_room.id not in explored:
-                explored.add(player.current_room.id)
-
-                for door in player.current_room.get_exits():
-                    if visited[player.current_room.id][door] == "?":
-                        current_direction = door
-                    else:
-                        queue.enqueue(new_direction)
 
 # TRAVERSAL TEST
 visited_rooms = set()
@@ -102,7 +103,7 @@ visited_rooms.add(player.current_room)
 
 for move in traversal_path:
     player.travel(move)
-    visited_rooms.add(player.current_room.id)
+    visited_rooms.add(player.current_room)
 
 if len(visited_rooms) == len(room_graph):
     print(f"TESTS PASSED: {len(traversal_path)} moves, {len(visited_rooms)} rooms visited")
